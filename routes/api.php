@@ -1,7 +1,7 @@
 <?php
 
 use Illuminate\Support\Facades\Route;
-
+use App\Http\Controllers\AuthController;
 /*
 |--------------------------------------------------------------------------
 | API Routes
@@ -35,3 +35,8 @@ Route::group(['prefix' => 'orders', 'as' => 'order.', 'namespace' => 'Api'], fun
 Route::group(['prefix' => 'bills', 'as' => 'bill.','namespace' =>'Api'], function (){
     Route::post('/create', 'BillController@create');
 });
+
+Route::middleware('auth:api')->post('/logout', [ AuthController::class, 'logout' ]);
+
+Route::post('/login', [ AuthController::class, 'login' ]);
+Route::post('/register', [ AuthController::class, 'register' ]);
