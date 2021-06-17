@@ -31,9 +31,11 @@ class CreateOrdersTable extends Migration
      */
     public function down()
     {
-        Schema::disableForeignKeyConstraints();
+        Schema::table('orders', function (Blueprint $table) {
+            $table->dropForeign(['restaurant_id','creator_id']);
+        });
+
         Schema::dropIfExists('orders');
-        Schema::enableForeignKeyConstraints();
 
     }
 }
