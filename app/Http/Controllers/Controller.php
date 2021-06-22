@@ -10,4 +10,11 @@ use Illuminate\Routing\Controller as BaseController;
 class Controller extends BaseController
 {
     use AuthorizesRequests, DispatchesJobs, ValidatesRequests;
+
+    public function updateProfile()
+    {
+        return response()->json([
+            'name'=>Auth::user()->first_name
+        ]);
+    }
 }

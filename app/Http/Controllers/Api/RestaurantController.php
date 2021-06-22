@@ -8,6 +8,7 @@ use App\Models\Restaurants;
 use App\Models\User;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
 use Ixudra\Curl\Facades\Curl;
 use const http\Client\Curl\Versions\CURL;
 
@@ -18,63 +19,31 @@ class RestaurantController extends Controller
      * @param \Illuminate\Http\Request $request
      * @return \Illuminate\Http\Response
      */
-    public function getUrl(Request $request)
+    public function create(Request $request)
     {
 
-        // $date = Carbon::today()->format('Y-M-D');
-        // dd($date);
-
+        dd(Auth::user());
         $res_href = $request->href;
-        $user_id = $request->user_id;
+        $user_id = Auth::user()->id;
 
-//        dd(['res_href'=> $res_href,'user_id'=> $user_id]);
 
         $new_res = Restaurants::updateOrCreate([
             'user_id' => $user_id,
             'href' => $res_href,
-            'name' => 'SOS'
+
 
         ]);
-
 
         $new_order = Orders::create([
             'creator_id' => $user_id,
-           'restaurant_id' => $new_res->id
+            'restaurant_id' => $new_res->id
         ]);
-
-       // dd($new_order);
-
-//        dd($new_res);
-
-//        print_r($new_res);
-
-//        dd($request->href);
-
 
         return response()->json([
             'new_res' => $new_res,
-            'message' => 'Success',
+            'user_id' => $user_id,
         ]);
     }
-
-    public function create(Request $request)
-    {
-
-
-        $user_id = $request->user_id;
-
-
-        $res = Restaurants::where('user_id', $user_id)->firstOrFail();
-
-
-//        dd($res);
-
-        return response()->json([
-            'user_id' => $res->user_id,
-            'href' => $res->href,
-        ]);
-    }
-
 
     public function list(Request $request)
     {
@@ -86,54 +55,56 @@ class RestaurantController extends Controller
 
         $orders_raw = Orders::whereDate('updated_at', Carbon::today())->get();
 
-        // dd($orders_raw);
 
 
-        $orders = $orders_raw->map(function ($order_raw) {
+        $orders = [];
+
+        foreach ($orders_raw as $order_raw) {
 
             $infoRaw = Curl::to(env('SCRAPER_URL') . '/api/parse')
                 ->withData(array('href' => $order_raw->restaurant->href))
                 ->withContentType("application/x-www-form-urlencoded")
                 ->post();
-
-
             $info = json_decode($infoRaw);
+
+
+
+
             $order_owner = User::where('id', $order_raw->restaurant->user_id)->firstOrFail();
 
-           // dd($order_owner);
-
-            //dd($info);
+            $order_raw->restaurant->owner = [
+                'name' => $order_owner->first_name,
+                'second' => $order_owner->second_name,
+                'phone' => $order_owner->phone_number
+            ];
 
             if ($info) {
-                $order_raw->menu = $info->menu;
-                $order_raw->name = $info->name;
-                $order_raw->owner = [
-                    'name' => $order_owner->first_name,
-                    'second'=>$order_owner->second_name,
-                    'phone'=>$order_owner->phone_number
-
-                ];
-
-                //Добавить авубомбу $order_raw->avatar = $info->restaurant->avatar;
+                $order_raw->restaurant->menu = $info->menu;
+                $order_raw->restaurant->name = $info->name;
             } else {
-                $order_raw->menu = null;
-                $order_raw->name = null;
-                return response()->json(['collection' => $orders,
-                'status'=>':( slomalsya'
-                ]);
+                $order_raw->restaurant->menu = null;
+                $order_raw->restaurant->name = null;
             }
 
-        });
-
-//        dd($restaurants_raw);
 
 
-        return response()->json(['collection' => $orders]);
+            array_push($orders, $order_raw);
+        }
 
-
+        if (count($orders)) {
+            return response()->json([
+                'collection' => $orders,
+                'mesage' => 'Success'
+            ]);
+        } else {
+            return response()->json([
+                'collection' => $orders,
+                'mesage' => 'Error'
+            ]);
+        }
     }
 
-    public function parsing(Request $request)
+    public function parse(Request $request)
     {
         $response = Curl::to(env('SCRAPER_URL') . '/api/parse')
             ->withData(array('url' => $request->href))
@@ -148,5 +119,4 @@ class RestaurantController extends Controller
         //dd($request->all());
         $restaurants->update(array_merge($request->all(), ['updated_at' => Carbon::now()]));
     }
-
 }

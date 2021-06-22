@@ -15,18 +15,21 @@ class BillController extends Controller
         $products = $request->products;
 
 //dd($request->all());
-        // product : {name: 'test', quantity: '34', cost: '33'}
+         $product = ['name' => 123,
+             'quantity' => 2222,
+             'price' => 99999999];
+
 
         foreach ($products as $product) {
             print_r($product['name']);
         }
 
-        dd([
-            '123' => $user_id,
-            '$order_id' => $order_id,
-            'lool' => $products
-
-        ]);
+//        dd([
+//            '123' => $user_id,
+//            '$order_id' => $order_id,
+//            'lool' => $products
+//
+//        ]);
         //$price = Bills::updateOrCreate({
         //     'price' => $price;
         // });
